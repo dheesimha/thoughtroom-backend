@@ -116,6 +116,6 @@ app.use(unknownEndpoint)
 
 
 
-app.listen(3002 || process.env.PORT, () => {
+app.listen(process.env.PORT || 3002, () => {
     console.log('Server started ');
 })
