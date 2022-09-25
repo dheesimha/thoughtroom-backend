@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const loginRouter = require("../controllers/login");
 const logger = require("./logger");
 
 const unknownEndpoint = (req, res) => {
@@ -6,8 +7,6 @@ const unknownEndpoint = (req, res) => {
 };
 
 const errorHandler = (error, req, res, next) => {
-  logger.error(error);
-
   if (error.name === "CastError") {
     return res.status(400).send({ error: "malformatted id" });
   } else if (error.name === "ValidationError") {
@@ -48,34 +47,27 @@ const userExtractor = (req, res, next) => {
   next();
 };
 
-// const tokenExtractor = (req,res,next) => {
-//   const authorization = req.get("authorization");
-//   if (authorization && authorization.toLowerCase().startsWith("bearer")) {
-//     req.token = authorization.substring(7);
-//   }
-// };
+const checkTokenExpiry = (req, res, next) => {
+  const token = req.token;
+  const now = Date.now().valueOf() / 1000;
 
-// const tokenExtractor = (req, res, next) => {
-//   try {
-//     const token = req.headers.authorization.split(" ")[1];
-//     const decodedToken = jwt.verify(token, process.env.SECRET);
-//     const userId = decodedToken.userId;
+  jwt.verify(token, process.env.SECRET, (err, decoded) => {
+    if (err) {
+      return err;
+    } else {
+      if (decoded.exp < now) {
+        res.status(400).json({ error: "Token expired.Kindly login again" });
+      }
+    }
 
-//     if (req.body.id && req.body.id !== userId) {
-//       throw "Invalid User Id";
-//     } else {
-//       next();
-//     }
-//   } catch {
-//     res.status(401).json({
-//       error: new Error("Invalid request"),
-//     });
-//   }
-// };
+    next();
+  });
+};
 
 module.exports = {
   unknownEndpoint,
   errorHandler,
   tokenExtractor,
   userExtractor,
+  checkTokenExpiry,
 };

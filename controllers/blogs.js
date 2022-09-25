@@ -4,34 +4,47 @@ const logger = require("../utils/logger");
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 const middleware = require("../utils/middleware");
-// const getTokenFrom = (req) => {
-//   const authorization = req.get("authorization");
-//   if (authorization && authorization.toLowerCase().startsWith("bearer")) {
-//     return authorization.substring(7);
-//   }
 
-//   return null;
-// };
+blogsRouter.get(
+  "/",
+  middleware.tokenExtractor,
+  middleware.checkTokenExpiry,
+  async (req, res) => {
+    try {
+      let blogs = await Blog.find({}).populate("user", {
+        username: 1,
+        name: 1,
+      });
+      res.json(blogs);
+    } catch (err) {
+      res.status(400).json({ error: err });
+    }
+  }
+);
 
-blogsRouter.get("/", async (req, res) => {
-  let blogs = await Blog.find({}).populate("user", { username: 1, name: 1 });
+blogsRouter.get(
+  "/:id",
+  middleware.tokenExtractor,
+  middleware.checkTokenExpiry,
+  async (req, res) => {
+    try {
+      let blog = await Blog.findById(req.params.id).populate("user", {
+        username: 1,
+        name: 1,
+      });
 
-  res.json(blogs);
-});
-
-blogsRouter.get("/:id", async (req, res) => {
-  let blog = await Blog.findById(req.params.id).populate("user", {
-    username: 1,
-    name: 1,
-  });
-
-  res.json(blog);
-});
+      res.json(blog);
+    } catch (err) {
+      res.status(400).json({ error: err });
+    }
+  }
+);
 
 blogsRouter.post(
   "/",
   middleware.tokenExtractor,
   middleware.userExtractor,
+  middleware.checkTokenExpiry,
   async (req, res) => {
     let body = req.body;
     // const token = getTokenFrom(req);
@@ -75,6 +88,8 @@ blogsRouter.delete(
   "/:id",
   middleware.tokenExtractor,
   middleware.userExtractor,
+  middleware.checkTokenExpiry,
+
   async (req, res) => {
     let id = req.params.id;
 
@@ -96,32 +111,38 @@ blogsRouter.delete(
   }
 );
 
-blogsRouter.put("/:id", async (req, res) => {
-  let id = req.params.id;
+blogsRouter.put(
+  "/:id",
+  middleware.tokenExtractor,
+  middleware.userExtractor,
+  middleware.checkTokenExpiry,
+  async (req, res) => {
+    let id = req.params.id;
 
-  let body = req.body;
+    let body = req.body;
 
-  let username = body.username;
+    let username = body.username;
 
-  let existingItem = await Blog.findById(id);
+    let existingItem = await Blog.findById(id);
 
-  if (existingItem.likersList.includes(username)) {
-    existingItem.likes = existingItem.likes - 1;
-    let index = existingItem.likersList.indexOf(username);
-    if (index > -1) {
-      existingItem.likersList.splice(index, 1);
+    if (existingItem.likersList.includes(username)) {
+      existingItem.likes = existingItem.likes - 1;
+      let index = existingItem.likersList.indexOf(username);
+      if (index > -1) {
+        existingItem.likersList.splice(index, 1);
+      }
+    } else {
+      existingItem.likes = existingItem.likes + 1;
+      existingItem.likersList.push(username);
     }
-  } else {
-    existingItem.likes = existingItem.likes + 1;
-    existingItem.likersList.push(username);
+
+    let updatedBlog = await Blog.findByIdAndUpdate(id, existingItem, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(201).json(updatedBlog.toJSON());
   }
-
-  let updatedBlog = await Blog.findByIdAndUpdate(id, existingItem, {
-    new: true,
-    runValidators: true,
-  });
-
-  res.status(201).json(updatedBlog.toJSON());
-});
+);
 
 module.exports = blogsRouter;

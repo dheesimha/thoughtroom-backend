@@ -21,7 +21,9 @@ loginRouter.post("/", async (req, res) => {
       id: user._id,
     };
 
-    const token = jwt.sign(userToken, process.env.SECRET, { expiresIn: "2h" });
+    const token = jwt.sign(userToken, process.env.SECRET, {
+      expiresIn: "7d",
+    });
 
     res.status(200).send({
       token,
@@ -30,7 +32,7 @@ loginRouter.post("/", async (req, res) => {
     });
   } catch (err) {
     res.json({ error: err });
-    console.log(err);
+    // console.log(err);
   }
 });
 
