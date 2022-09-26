@@ -25,11 +25,12 @@ app.use("/api/users", userRouter);
 app.use("/api/login", loginRouter);
 app.use("/api/blogs", blogsRouter);
 
-app.use(middleware.unknownEndpoint);
 app.use(middleware.errorHandler);
 
-app.listen(config.PORT || 3001, () => {
-  console.log(`Sever started on port`);
+app.listen(config.PORT, () => {
+  console.log(`Server started `);
 });
+
+app.use(middleware.unknownEndpoint);
 
 module.exports = app;
